@@ -1,0 +1,1 @@
+docker buildx build -f Dockerfile.cloudrun --progress=plain --platform linux/amd64 --push -t asia-southeast1-docker.pkg.dev/snapcut/onmic/gpu-screenshot-service:latest .

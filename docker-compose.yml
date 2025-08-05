@@ -1,0 +1,71 @@
+services:
+  dora-runpod:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudrun
+    container_name: dora-runpod-gpu-service
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - PORT=8080
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+    volumes:
+      # Mount for screenshot output (optional - for development)
+      - ./screenshots:/app/screenshots
+      # Mount logs directory (optional)
+      - ./logs:/app/logs
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dora-network
+
+  # Optional: Add a development variant for local testing
+  dora-runpod-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloudrun
+    container_name: dora-runpod-dev
+    ports:
+      - "8081:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - DEBUG=puppeteer:*
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+    volumes:
+      # Live code mounting for development
+      - ./test.js:/app/test.js
+      - ./package.json:/app/package.json
+      - ./screenshots:/app/screenshots
+      - ./logs:/app/logs
+    runtime: nvidia
+    profiles:
+      - development
+    networks:
+      - dora-network
+
+networks:
+  dora-network:
+    driver: bridge
+
+volumes:
+  screenshots:
+  logs:

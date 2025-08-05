@@ -1,0 +1,24 @@
+# OSX
+#
+.DS_Store
+
+# Generated files
+bin/
+gen/
+out/
+
+# typescript
+tsconfig.tsbuildinfo
+
+# node.js
+#
+dist/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+upload/*
+logs
+
+.env
+.env.*
