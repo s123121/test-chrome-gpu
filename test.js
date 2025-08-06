@@ -7,27 +7,6 @@ import path from "path";
 const SCREENSHOT_FILE = "./chrome-gpu-screenshot_container.png";
 const PORT = process.env.PORT || 8080;
 
-async function autoScrollPage(page) {
-  await page.evaluate(async () => {
-    return new Promise((resolve) => {
-      let totalHeight = 0;
-      const distance = 100;
-      const delay = 100;
-
-      const timer = setInterval(() => {
-        const scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
-        totalHeight += distance;
-
-        if (totalHeight >= scrollHeight) {
-          clearInterval(timer);
-          setTimeout(resolve, 500);
-        }
-      }, delay);
-    });
-  });
-}
-
 /**
  * Takes a screenshot of chrome://gpu using Puppeteer with auto-downloaded Chrome
  */
@@ -68,6 +47,7 @@ async function screenshotGpuPage(outputPath = SCREENSHOT_FILE) {
         "--headless=new",
         "--enable-webgl",
         "--enable-webgl2-compute-context",
+        "--ignore-gpu-blacklist",
         "--ignore-gpu-blocklist",
         "--disable-frame-rate-limit",
         "--disable-gpu-vsync",
@@ -76,6 +56,12 @@ async function screenshotGpuPage(outputPath = SCREENSHOT_FILE) {
         "--enable-accelerated-2d-canvas",
         "--enable-accelerated-video-decode",
         "--disable-software-rasterizer",
+        "--enable-accelerated-video-encode",
+        "--enable-hardware-overlays",
+        "--enable-gpu-memory-buffer-video-frames",
+        "--enable-native-gpu-memory-buffers",
+        "--enable-features=VaapiVideoEncoder",
+        "--enable-features=VaapiVideoDecoder",
       ],
     });
 
@@ -94,15 +80,10 @@ async function screenshotGpuPage(outputPath = SCREENSHOT_FILE) {
     console.log("Navigating to chrome://gpu...");
 
     // Navigate to chrome://gpu
-    await page.goto("https://webglreport.com/?v=2", {
+    await page.goto("chrome://gpu", {
       waitUntil: "domcontentloaded",
       timeout: 30000,
     });
-
-    await autoScrollPage(page);
-
-    // Scroll back to top for consistent screenshot
-    await page.evaluate(() => window.scrollTo(0, 0));
 
     console.log("Page loaded, taking screenshot...");
 
@@ -118,67 +99,6 @@ async function screenshotGpuPage(outputPath = SCREENSHOT_FILE) {
     // Optional: Get page title
     const title = await page.title();
     console.log(`Page title: ${title}`);
-
-    // Optional: Extract GPU information from the page
-    try {
-      const gpuInfo = await page.evaluate(() => {
-        // Extract GPU feature status information
-        const infoSections = [];
-
-        // Look for feature status table
-        const tables = document.querySelectorAll("table");
-        tables.forEach((table) => {
-          const caption = table.querySelector("caption");
-          if (
-            caption &&
-            caption.textContent.includes("Graphics Feature Status")
-          ) {
-            const rows = table.querySelectorAll("tr");
-            rows.forEach((row) => {
-              const cells = row.querySelectorAll("td, th");
-              if (cells.length >= 2) {
-                infoSections.push(
-                  `${cells[0].textContent.trim()}: ${cells[1].textContent.trim()}`
-                );
-              }
-            });
-          }
-        });
-
-        // Also look for basic GPU info
-        const basicInfo = [];
-        const divs = document.querySelectorAll("div");
-        divs.forEach((div) => {
-          const text = div.textContent;
-          if (
-            text.includes("GPU0") ||
-            text.includes("VENDOR") ||
-            text.includes("DEVICE")
-          ) {
-            basicInfo.push(text.trim());
-          }
-        });
-
-        return {
-          featureStatus: infoSections.slice(0, 5), // First 5 features
-          basicInfo: basicInfo.slice(0, 3), // First 3 basic info items
-        };
-      });
-
-      if (gpuInfo.featureStatus.length > 0) {
-        console.log("\nGPU Feature Status (first 5):");
-        gpuInfo.featureStatus.forEach((feature) => console.log(`  ${feature}`));
-      }
-
-      if (gpuInfo.basicInfo.length > 0) {
-        console.log("\nBasic GPU Info:");
-        gpuInfo.basicInfo.forEach((info) => console.log(`  ${info}`));
-      }
-    } catch (e) {
-      console.log(
-        "Could not extract detailed GPU info, but screenshot was taken successfully"
-      );
-    }
 
     return outputPath;
   } catch (error) {

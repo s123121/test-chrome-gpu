@@ -13,6 +13,7 @@ ENV NODE_ENV=production
 ENV PORT=8080
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
+ENV __GLX_VENDOR_LIBRARY_NAME=nvidia
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -43,6 +44,8 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     gpg-agent \
     build-essential \
+    libnvidia-gl-470 \
+    nvidia-utils-470 \
     apt-utils \
     && rm -rf /var/lib/apt/lists/*
 
